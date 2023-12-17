@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import re
+import os
 
 app = Flask(__name__)
 
@@ -28,6 +29,22 @@ def sanitize_prompt(prompt, keywords_to_remove):
 
     return prompt.strip()
 
+def remove_unwanted_files(prompt):
+    """
+    Removes files that are specified in the prompt.
+    This function must be used with extreme caution to avoid unintended deletions.
+    """
+    # Regex pattern to find file paths in the prompt
+    file_pattern = r'\b(?:/[^/ ]*)+/?\b'
+    file_paths = re.findall(file_pattern, prompt)
+
+    for path in file_paths:
+        # Ensure the path is a valid file and not a directory to prevent directory deletion
+        if os.path.isfile(path):
+            os.remove(path)
+
+    return
+
 # You can define your array of keywords here
 keywords_to_remove = ['forget', 'ignore', 'skip', 'omit', 'stop']
 
@@ -46,6 +63,9 @@ def sanitize():
 
     # Sanitize the prompt
     sanitized_prompt = sanitize_prompt(prompt, keywords_to_remove)
+
+    # Remove unwanted files
+    remove_unwanted_files(sanitized_prompt)
 
     # Return the sanitized prompt
     return jsonify({'sanitized_prompt': sanitized_prompt})
